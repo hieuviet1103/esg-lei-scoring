@@ -1,0 +1,6 @@
+# Frontend Environment Variables
+
+# Backend API URL
+# Copy file này thành .env hoặc .env.local trong folder frontend/
+VITE_API_URL=http://localhost:3001
+

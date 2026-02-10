@@ -1,0 +1,341 @@
+// Dynamic Product Evaluation System - Database Schema
+// Based on meta-driven, versioning, EAV + JSON architecture
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// FORM BUILDER CONFIGURATION
+// ========================================
+
+model Form {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  status    String   @default("active") // active/inactive
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  versions FormVersion[]
+
+  @@map("forms")
+}
+
+model FormVersion {
+  id            String    @id @default(cuid())
+  formId        String
+  versionNo     Int
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+  configJson    Json? // snapshot toàn bộ cấu hình
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  form                Form                 @relation(fields: [formId], references: [id], onDelete: Cascade)
+  sections            FormSection[]
+  productVersions     ProductVersion[]
+  scoreModels         ScoreModel[]
+
+  @@unique([formId, versionNo])
+  @@map("form_versions")
+}
+
+model FormSection {
+  id            String  @id @default(cuid())
+  formVersionId String
+  code          String
+  name          String
+  orderNo       Int
+  uiHint        Json? // layout, icon, help text
+
+  formVersion FormVersion @relation(fields: [formVersionId], references: [id], onDelete: Cascade)
+  fields      FormField[]
+
+  @@unique([formVersionId, code])
+  @@map("form_sections")
+}
+
+model FormField {
+  id             String   @id @default(cuid())
+  sectionId      String
+  code           String
+  label          String
+  dataType       String // text/number/date/bool/select/multiselect/json
+  controlType    String // input/textarea/slider/checklist/table/repeater/file
+  required       Boolean  @default(false)
+  defaultValue   String?
+  validationJson Json? // min/max/regex/precision
+  optionsSource  String?  @default("static") // static/sql/api
+  optionsJson    Json? // options for select/multiselect
+  calcFormula    String? // công thức tính field
+  orderNo        Int
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  section           FormSection          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  fieldValues       ProductFieldValue[]
+  scoreCriteria     ScoreCriteria[]
+  fieldAttachments  FieldAttachment[]
+
+  @@unique([sectionId, code])
+  @@map("form_fields")
+}
+
+// ========================================
+// PRODUCT & DATA INSTANCE
+// ========================================
+
+model Product {
+  id          String   @id @default(cuid())
+  productCode String   @unique
+  productName String
+  ownerBu     String
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  versions ProductVersion[]
+
+  @@map("products")
+}
+
+model ProductVersion {
+  id            String   @id @default(cuid())
+  productId     String
+  versionNo     Int
+  status        String   @default("draft") // draft/submitted/review/pilot/golive/rejected/archived
+  formVersionId String
+  summaryJson   Json? // cache hiển thị nhanh
+  dataJson      Json? // OPTION 2: lưu toàn bộ data ở đây (JSON-first)
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product           Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  formVersion       FormVersion         @relation(fields: [formVersionId], references: [id])
+  fieldValues       ProductFieldValue[]
+  scores            ProductScore[]
+  workflowInstances WorkflowInstance[]
+  auditLogs         AuditLog[]
+  fieldAttachments  FieldAttachment[]
+
+  @@unique([productId, versionNo])
+  @@map("product_versions")
+}
+
+// EAV approach for typed field values
+model ProductFieldValue {
+  id               String    @id @default(cuid())
+  productVersionId String
+  fieldId          String
+  valueText        String?
+  valueNumber      Float?
+  valueDate        DateTime?
+  valueBool        Boolean?
+  valueJson        Json? // for table/repeater/complex structures
+  updatedBy        String
+  updatedAt        DateTime  @default(now())
+
+  productVersion ProductVersion @relation(fields: [productVersionId], references: [id], onDelete: Cascade)
+  field          FormField      @relation(fields: [fieldId], references: [id])
+
+  @@unique([productVersionId, fieldId])
+  @@map("product_field_values")
+}
+
+// ========================================
+// SCORING ENGINE
+// ========================================
+
+model ScoreFramework {
+  id          String   @id @default(cuid())
+  code        String   @unique // LEI/ESG/KPI
+  name        String
+  description String?
+  maxScore    Float    @default(100)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  models ScoreModel[]
+  scores ProductScore[]
+
+  @@map("score_frameworks")
+}
+
+model ScoreModel {
+  id              String  @id @default(cuid())
+  frameworkId     String
+  formVersionId   String?
+  appliesTo       Json? // bu/line/channel
+  modelName       String
+  passThreshold   Float?
+  warnThreshold   Float?
+  weightingJson   Json? // weight theo pillar
+  isActive        Boolean @default(true)
+  createdAt       DateTime @default(now())
+
+  framework ScoreFramework  @relation(fields: [frameworkId], references: [id])
+  formVersion FormVersion? @relation(fields: [formVersionId], references: [id])
+  criteria  ScoreCriteria[]
+  scores    ProductScore[]
+
+  @@map("score_models")
+}
+
+model ScoreCriteria {
+  id               String   @id @default(cuid())
+  scoreModelId     String
+  code             String
+  name             String
+  maxPoints        Float
+  weight           Float?
+  inputFieldId     String? // field này lấy điểm từ field nào
+  ruleJson         Json? // cách tính: sum, slider direct, formula
+  orderNo          Int
+  evidenceRequired Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  scoreModel      ScoreModel        @relation(fields: [scoreModelId], references: [id], onDelete: Cascade)
+  inputField      FormField?        @relation(fields: [inputFieldId], references: [id])
+  scoreDetails    ProductScoreDetail[]
+
+  @@unique([scoreModelId, code])
+  @@map("score_criteria")
+}
+
+model ProductScore {
+  id                       String   @id @default(cuid())
+  productVersionId         String
+  frameworkId              String
+  scoreModelId             String
+  totalScore               Float
+  status                   String // pass/warn/fail
+  calculatedAt             DateTime @default(now())
+  calculationSnapshotJson  Json? // log công thức/đầu vào
+
+  productVersion ProductVersion       @relation(fields: [productVersionId], references: [id], onDelete: Cascade)
+  framework      ScoreFramework       @relation(fields: [frameworkId], references: [id])
+  scoreModel     ScoreModel           @relation(fields: [scoreModelId], references: [id])
+  details        ProductScoreDetail[]
+
+  @@unique([productVersionId, frameworkId])
+  @@map("product_scores")
+}
+
+model ProductScoreDetail {
+  id             String  @id @default(cuid())
+  productScoreId String
+  criteriaId     String
+  scoreValue     Float
+  evidenceStatus String? // ok/missing
+  notes          String?
+
+  productScore ProductScore  @relation(fields: [productScoreId], references: [id], onDelete: Cascade)
+  criteria     ScoreCriteria @relation(fields: [criteriaId], references: [id])
+
+  @@map("product_score_details")
+}
+
+// ========================================
+// FILE ATTACHMENTS
+// ========================================
+
+model Attachment {
+  id              String   @id @default(cuid())
+  storageProvider String   @default("local") // minio/s3/local
+  filePath        String
+  fileName        String
+  mimeType        String
+  sizeBytes       Int
+  uploadedBy      String
+  uploadedAt      DateTime @default(now())
+
+  fieldAttachments FieldAttachment[]
+
+  @@map("attachments")
+}
+
+model FieldAttachment {
+  id               String   @id @default(cuid())
+  productVersionId String
+  fieldId          String
+  attachmentId     String
+  note             String?
+  createdAt        DateTime @default(now())
+
+  productVersion ProductVersion @relation(fields: [productVersionId], references: [id], onDelete: Cascade)
+  field          FormField      @relation(fields: [fieldId], references: [id])
+  attachment     Attachment     @relation(fields: [attachmentId], references: [id])
+
+  @@map("field_attachments")
+}
+
+// ========================================
+// WORKFLOW & AUDIT
+// ========================================
+
+model WorkflowDefinition {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  name       String
+  configJson Json // steps, roles, SLA
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  instances WorkflowInstance[]
+
+  @@map("workflow_definitions")
+}
+
+model WorkflowInstance {
+  id               String    @id @default(cuid())
+  workflowId       String
+  productVersionId String
+  currentStep      String
+  currentStatus    String
+  startedAt        DateTime  @default(now())
+  endedAt          DateTime?
+
+  workflow       WorkflowDefinition @relation(fields: [workflowId], references: [id])
+  productVersion ProductVersion     @relation(fields: [productVersionId], references: [id], onDelete: Cascade)
+  actions        WorkflowAction[]
+
+  @@map("workflow_instances")
+}
+
+model WorkflowAction {
+  id         String   @id @default(cuid())
+  instanceId String
+  stepCode   String
+  action     String // submit/approve/reject/request_change
+  actor      String
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  instance WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_actions")
+}
+
+model AuditLog {
+  id               String   @id @default(cuid())
+  entityType       String // product_version/field_value/score
+  entityId         String
+  productVersionId String?
+  action           String
+  beforeJson       Json?
+  afterJson        Json?
+  actor            String
+  createdAt        DateTime @default(now())
+
+  productVersion ProductVersion? @relation(fields: [productVersionId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
+

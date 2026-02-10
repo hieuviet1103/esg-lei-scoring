@@ -1,0 +1,31 @@
+# Example override file for local development customization
+# Copy this to docker-compose.override.yml and customize
+# docker-compose.override.yml is git-ignored
+
+version: '3.8'
+
+services:
+  backend:
+    environment:
+      # Add custom environment variables
+      DEBUG: "true"
+      LOG_LEVEL: "debug"
+    ports:
+      # Add additional ports if needed
+      - "9229:9229"  # Node.js debugger
+    # volumes:
+      # Add custom volume mounts
+
+  frontend:
+    environment:
+      # Custom frontend env vars
+      VITE_DEBUG: "true"
+
+  postgres:
+    # Change port if conflicting
+    # ports:
+    #   - "5433:5432"
+    environment:
+      # Custom postgres config
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+

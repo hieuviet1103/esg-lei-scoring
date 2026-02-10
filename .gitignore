@@ -1,0 +1,34 @@
+node_modules
+dist
+.env
+.env.local
+*.log
+.DS_Store
+coverage
+.vscode
+.idea
+backend/prisma/migrations
+
+# Docker
+docker-compose.override.yml
+*.sql
+backup_*.sql
+
+# Build artifacts
+backend/dist
+frontend/dist
+
+# Dependencies
+backend/node_modules
+frontend/node_modules
+
+# Environment
+.env.production
+.env.staging
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# OS
+Thumbs.db
