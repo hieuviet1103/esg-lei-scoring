@@ -29,7 +29,7 @@ export default function PropertiesPanel({
     : null;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 sticky top-20 max-h-[calc(100vh-100px)] overflow-y-auto">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 sticky top-6 max-h-[calc(100vh-120px)] overflow-y-auto">
       <div className="p-4 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center space-x-2 mb-3">
           <Settings className="h-5 w-5 text-gray-600" />
@@ -248,6 +248,8 @@ export default function PropertiesPanel({
                 <option value="slider">Slider</option>
                 <option value="checklist">Checklist</option>
                 <option value="table">Table</option>
+                <option value="text-array">Text Array (Append)</option>
+                <option value="kpi">KPI (Operator + Value)</option>
                 <option value="file">File</option>
               </select>
             </div>
@@ -337,6 +339,72 @@ export default function PropertiesPanel({
                   className="btn btn-sm btn-secondary w-full"
                 >
                   + Add Option
+                </button>
+              </div>
+            )}
+
+            {/* Items for checklist */}
+            {field.control === 'checklist' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Checklist Items
+                </label>
+                {((field.ui?.items || []) as any[]).map((item: any, idx: number) => (
+                  <div key={idx} className="space-y-2 mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        value={item.id || ''}
+                        onChange={(e) => {
+                          const newItems = [...(field.ui?.items || [])];
+                          newItems[idx] = { ...item, id: e.target.value };
+                          onUpdateField({ ui: { ...field.ui, items: newItems } });
+                        }}
+                        placeholder="ID (e.g., item_1)"
+                        className="input flex-1 text-sm font-mono"
+                      />
+                      <button
+                        onClick={() => {
+                          const newItems = (field.ui?.items || []).filter((_: any, i: number) => i !== idx);
+                          onUpdateField({ ui: { ...field.ui, items: newItems } });
+                        }}
+                        className="text-red-600 hover:text-red-800 px-2"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      value={item.label || ''}
+                      onChange={(e) => {
+                        const newItems = [...(field.ui?.items || [])];
+                        newItems[idx] = { ...item, label: e.target.value };
+                        onUpdateField({ ui: { ...field.ui, items: newItems } });
+                      }}
+                      placeholder="Label"
+                      className="input w-full text-sm"
+                    />
+                    <input
+                      type="number"
+                      value={item.maxPoints || 0}
+                      onChange={(e) => {
+                        const newItems = [...(field.ui?.items || [])];
+                        newItems[idx] = { ...item, maxPoints: parseInt(e.target.value) || 0 };
+                        onUpdateField({ ui: { ...field.ui, items: newItems } });
+                      }}
+                      placeholder="Max Points"
+                      className="input w-full text-sm"
+                    />
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    const newItems = [...(field.ui?.items || []), { id: `item_${Date.now()}`, label: '', maxPoints: 10 }];
+                    onUpdateField({ ui: { ...field.ui, items: newItems } });
+                  }}
+                  className="btn btn-sm btn-secondary w-full"
+                >
+                  + Add Checklist Item
                 </button>
               </div>
             )}
@@ -487,6 +555,139 @@ export default function PropertiesPanel({
                   />
                 </div>
               </>
+            )}
+
+            {field.control === 'table' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Table Columns
+                </label>
+                {((field.columns || []) as any[]).map((column: any, idx: number) => (
+                  <div key={idx} className="space-y-2 mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        value={column.key || ''}
+                        onChange={(e) => {
+                          const newColumns = [...(field.columns || [])];
+                          newColumns[idx] = { ...column, key: e.target.value };
+                          onUpdateField({ columns: newColumns });
+                        }}
+                        placeholder="Key (e.g., name)"
+                        className="input flex-1 text-sm font-mono"
+                      />
+                      <button
+                        onClick={() => {
+                          const newColumns = (field.columns || []).filter((_: any, i: number) => i !== idx);
+                          onUpdateField({ columns: newColumns });
+                        }}
+                        className="text-red-600 hover:text-red-800 px-2"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      value={column.label || ''}
+                      onChange={(e) => {
+                        const newColumns = [...(field.columns || [])];
+                        newColumns[idx] = { ...column, label: e.target.value };
+                        onUpdateField({ columns: newColumns });
+                      }}
+                      placeholder="Label (e.g., Name)"
+                      className="input w-full text-sm"
+                    />
+                    <select
+                      value={column.type || 'text'}
+                      onChange={(e) => {
+                        const newColumns = [...(field.columns || [])];
+                        newColumns[idx] = { ...column, type: e.target.value };
+                        onUpdateField({ columns: newColumns });
+                      }}
+                      className="input w-full text-sm"
+                    >
+                      <option value="text">Text</option>
+                      <option value="number">Number</option>
+                      <option value="date">Date</option>
+                      <option value="select">Select</option>
+                      <option value="checkbox">Checkbox</option>
+                    </select>
+                    {column.type === 'select' && (
+                      <div className="pl-2 border-l-2 border-blue-300">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Select Options (comma-separated)
+                        </label>
+                        <input
+                          type="text"
+                          value={column.options?.join(', ') || ''}
+                          onChange={(e) => {
+                            const newColumns = [...(field.columns || [])];
+                            newColumns[idx] = { 
+                              ...column, 
+                              options: e.target.value.split(',').map(o => o.trim()).filter(o => o)
+                            };
+                            onUpdateField({ columns: newColumns });
+                          }}
+                          placeholder="Option1, Option2, Option3"
+                          className="input w-full text-xs"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    const newColumns = [...(field.columns || []), { key: '', label: '', type: 'text' }];
+                    onUpdateField({ columns: newColumns });
+                  }}
+                  className="btn btn-sm btn-secondary w-full"
+                >
+                  + Add Column
+                </button>
+              </div>
+            )}
+
+            {field.control === 'kpi' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  KPI Configuration
+                </label>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="mb-2">
+                    <label className="flex items-center space-x-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={field.ui?.allowMultiple || false}
+                        onChange={(e) => onUpdateField({ 
+                          ui: { ...field.ui, allowMultiple: e.target.checked }
+                        })}
+                        className="rounded border-gray-300"
+                      />
+                      <span>Allow multiple KPI conditions</span>
+                    </label>
+                  </div>
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Value Type
+                    </label>
+                    <select
+                      value={field.ui?.valueType || 'number'}
+                      onChange={(e) => onUpdateField({ 
+                        ui: { ...field.ui, valueType: e.target.value }
+                      })}
+                      className="input text-sm"
+                    >
+                      <option value="number">Number</option>
+                      <option value="text">Text</option>
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="currency">Currency (VND)</option>
+                    </select>
+                  </div>
+                  <div className="text-xs text-blue-700 mt-2">
+                    💡 Users can select operator {'(>, <, =, etc.)'} and enter value
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         )}

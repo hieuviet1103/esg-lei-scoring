@@ -112,14 +112,16 @@ export default function FormBuilderPage() {
     const newField = {
       id: `field_${Date.now()}`,
       label: 'New Field',
-      type: fieldType === 'number' || fieldType === 'slider' ? 'number' : 'text',
+      type: fieldType === 'number' || fieldType === 'slider' ? 'number' : fieldType === 'text-array' ? 'array' : fieldType === 'kpi' ? 'object' : 'text',
       control: fieldType,
       required: false,
       dataPath: `section_${sectionIdx}.field_${Date.now()}`,
       ...(fieldType === 'select' && { options: [{ value: '', label: 'Option 1' }] }),
       ...(fieldType === 'slider' && { ui: { min: 0, max: 100, step: 1 } }),
       ...(fieldType === 'checklist' && { ui: { maxPoints: 100, items: [] } }),
-      ...(fieldType === 'table' && { columns: [] })
+      ...(fieldType === 'table' && { columns: [] }),
+      ...(fieldType === 'text-array' && { ui: { placeholder: 'Enter text and press Enter or click Add' } }),
+      ...(fieldType === 'kpi' && { ui: { allowMultiple: false, valueType: 'number' } })
     };
     
     const newSections = [...formData.sections];

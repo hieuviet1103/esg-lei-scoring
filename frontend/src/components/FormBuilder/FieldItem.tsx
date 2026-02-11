@@ -1,4 +1,6 @@
 import { GripVertical, Trash2, Eye, EyeOff } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface FieldItemProps {
   field: any;
@@ -20,6 +22,8 @@ const fieldIcons: Record<string, string> = {
   slider: '🎚️',
   checklist: '✓',
   table: '📊',
+  'text-array': '📝+',
+  kpi: '🎯',
   file: '📎'
 };
 
@@ -30,8 +34,25 @@ export default function FieldItem({
   onUpdate,
   onDelete
 }: FieldItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: field.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       onClick={onSelect}
       className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
         selected
@@ -40,7 +61,7 @@ export default function FieldItem({
       }`}
     >
       <div className="flex items-center space-x-3 flex-1">
-        <div className="cursor-grab active:cursor-grabbing">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
           <GripVertical className="h-4 w-4 text-gray-400" />
         </div>
 

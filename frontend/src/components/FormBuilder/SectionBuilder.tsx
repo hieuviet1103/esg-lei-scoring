@@ -2,6 +2,8 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import FieldItem from './FieldItem';
 
 interface SectionBuilderProps {
@@ -34,6 +36,13 @@ export default function SectionBuilder({
   const [collapsed, setCollapsed] = useState(false);
   const [showFieldMenu, setShowFieldMenu] = useState(false);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const {
     attributes,
     listeners,
@@ -49,6 +58,21 @@ export default function SectionBuilder({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const handleFieldDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) return;
+
+    const fields = section.fields || [];
+    const oldIndex = fields.findIndex((f: any) => f.id === active.id);
+    const newIndex = fields.findIndex((f: any) => f.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const newFields = arrayMove(fields, oldIndex, newIndex);
+      onUpdate({ fields: newFields });
+    }
+  };
+
   const fieldTypes = [
     { type: 'text', label: 'Text Input', icon: '📝' },
     { type: 'textarea', label: 'Text Area', icon: '📄' },
@@ -61,6 +85,8 @@ export default function SectionBuilder({
     { type: 'slider', label: 'Slider', icon: '🎚️' },
     { type: 'checklist', label: 'Checklist', icon: '✓' },
     { type: 'table', label: 'Table', icon: '📊' },
+    { type: 'text-array', label: 'Text Array (Append)', icon: '📝+' },
+    { type: 'kpi', label: 'KPI (Operator + Value)', icon: '🎯' },
     { type: 'file', label: 'File Upload', icon: '📎' }
   ];
 
@@ -166,21 +192,32 @@ export default function SectionBuilder({
       {/* Fields List */}
       {!collapsed && (
         <div className="p-4 space-y-2">
-          {section.fields?.map((field: any, fieldIdx: number) => (
-            <FieldItem
-              key={field.id}
-              field={field}
-              selected={
-                selectedField?.sectionIdx === sectionIdx &&
-                selectedField?.fieldIdx === fieldIdx
-              }
-              onSelect={() => onSelectField(fieldIdx)}
-              onUpdate={(updates) => onUpdateField(fieldIdx, updates)}
-              onDelete={() => onDeleteField(fieldIdx)}
-            />
-          ))}
-
-          {(!section.fields || section.fields.length === 0) && (
+          {section.fields && section.fields.length > 0 ? (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleFieldDragEnd}
+            >
+              <SortableContext
+                items={section.fields.map((f: any) => f.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {section.fields.map((field: any, fieldIdx: number) => (
+                  <FieldItem
+                    key={field.id}
+                    field={field}
+                    selected={
+                      selectedField?.sectionIdx === sectionIdx &&
+                      selectedField?.fieldIdx === fieldIdx
+                    }
+                    onSelect={() => onSelectField(fieldIdx)}
+                    onUpdate={(updates) => onUpdateField(fieldIdx, updates)}
+                    onDelete={() => onDeleteField(fieldIdx)}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          ) : (
             <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-300 rounded-lg">
               <p className="text-sm">Chưa có field nào</p>
               <p className="text-xs mt-1">Click "Add Field" để thêm</p>
