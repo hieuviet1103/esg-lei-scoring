@@ -87,6 +87,7 @@ export default function SectionBuilder({
     { type: 'table', label: 'Table', icon: '📊' },
     { type: 'text-array', label: 'Text Array (Append)', icon: '📝+' },
     { type: 'kpi', label: 'KPI (Operator + Value)', icon: '🎯' },
+    { type: 'computed', label: 'Computed (Read-only)', icon: '🔄' },
     { type: 'file', label: 'File Upload', icon: '📎' }
   ];
 

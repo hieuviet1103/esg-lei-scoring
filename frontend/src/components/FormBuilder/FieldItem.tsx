@@ -24,6 +24,7 @@ const fieldIcons: Record<string, string> = {
   table: '📊',
   'text-array': '📝+',
   kpi: '🎯',
+  computed: '🔄',
   file: '📎'
 };
 

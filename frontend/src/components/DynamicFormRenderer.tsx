@@ -18,6 +18,12 @@ export default function DynamicFormRenderer({
   const [formData, setFormData] = useState(initialData);
   const [computedData, setComputedData] = useState(initialData);
 
+  // Sync formData when initialData changes
+  useEffect(() => {
+    setFormData(initialData);
+    setComputedData(initialData);
+  }, [initialData]);
+
   // Compute calculated fields
   useEffect(() => {
     const rules = schema?.rules;

@@ -158,9 +158,9 @@ export default function FormBuilderPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <div className="bg-white border-b border-gray-200 flex-shrink-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
@@ -232,9 +232,10 @@ export default function FormBuilderPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {mode === 'builder' && (
-          <div className="grid grid-cols-12 gap-6">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {mode === 'builder' && (
+            <div className="grid grid-cols-12 gap-6">
             {/* Left: Field Palette */}
             <div className="col-span-2">
               <FieldPalette />
@@ -307,57 +308,58 @@ export default function FormBuilderPage() {
                   selectedField && handleUpdateField(selectedField.sectionIdx, selectedField.fieldIdx, updates)
                 }
               />
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {mode === 'json' && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">JSON Editor</h2>
-            <textarea
-              value={jsonView}
-              onChange={(e) => {
-                setJsonView(e.target.value);
-                try {
-                  const parsed = JSON.parse(e.target.value);
-                  setFormData(parsed.schema);
-                  setRules(parsed.rules);
-                } catch (e) {
-                  // Invalid JSON, don't update
-                }
-              }}
-              className="w-full h-[calc(100vh-250px)] font-mono text-sm p-4 border border-gray-300 rounded-lg"
-              aria-label="JSON Schema Editor"
-              placeholder="Enter JSON schema..."
-            />
-          </div>
-        )}
+            {mode === 'json' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">JSON Editor</h2>
+              <textarea
+                value={jsonView}
+                onChange={(e) => {
+                  setJsonView(e.target.value);
+                  try {
+                    const parsed = JSON.parse(e.target.value);
+                    setFormData(parsed.schema);
+                    setRules(parsed.rules);
+                  } catch (e) {
+                    // Invalid JSON, don't update
+                  }
+                }}
+                className="w-full h-[calc(100vh-250px)] font-mono text-sm p-4 border border-gray-300 rounded-lg"
+                aria-label="JSON Schema Editor"
+                placeholder="Enter JSON schema..."
+              />
+            </div>
+          )}
 
-        {mode === 'preview' && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Form Preview</h2>
-            <div className="space-y-6">
-              {formData.sections.map((section: any) => (
-                <div key={section.id} className="border border-gray-200 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{section.title}</h3>
-                  <div className="space-y-4">
-                    {section.fields.map((field: any) => (
-                      <div key={field.id}>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {field.label}
-                          {field.required && <span className="text-red-500 ml-1">*</span>}
-                        </label>
-                        <div className="text-sm text-gray-500">
-                          Type: {field.control} | DataPath: {field.dataPath}
+          {mode === 'preview' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">Form Preview</h2>
+              <div className="space-y-6">
+                {formData.sections.map((section: any) => (
+                  <div key={section.id} className="border border-gray-200 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">{section.title}</h3>
+                    <div className="space-y-4">
+                      {section.fields.map((field: any) => (
+                        <div key={field.id}>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {field.label}
+                            {field.required && <span className="text-red-500 ml-1">*</span>}
+                          </label>
+                          <div className="text-sm text-gray-500">
+                            Type: {field.control} | DataPath: {field.dataPath}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

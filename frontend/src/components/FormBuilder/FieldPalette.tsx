@@ -52,7 +52,7 @@ export default function FieldPalette() {
   })).filter(category => category.fields.length > 0);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 sticky top-20">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 sticky top-6 self-start">
       <div className="p-4 border-b border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-3">Field Types</h3>
         <div className="relative">
